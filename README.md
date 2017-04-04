@@ -7,4 +7,4 @@ Library for producing metrics in AWS Lambda.
 
 ## Installation
 
-`npm install git@github.com:Giftbit/giftbit-lambda-metricslib.git`
+`npm install git+ssh://git@github.com/Giftbit/giftbit-lambda-metricslib.git`
