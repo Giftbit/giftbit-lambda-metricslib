@@ -1,3 +1,5 @@
+/// <reference path="./datadog-metrics.d.ts"/>
+
 import * as aws from "aws-sdk";
 import * as awslambda from "aws-lambda";
 import * as metrics from "datadog-metrics";
