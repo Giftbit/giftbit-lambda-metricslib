@@ -1,0 +1,38 @@
+{
+  "name": "giftbit-lambda-metricslib",
+  "version": "1.0.0",
+  "description": "Library for producing metrics in AWS Lambda.",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "npm run clean && tsc",
+    "clean": "rimraf ./dist",
+    "lint": "tslint --project tsconfig.json",
+    "test": "mocha --recursive --throw-deprecation --require ts-node/register \"src/**/*.test.ts\"",
+    "test:watch": "npm run test -- --watch --watch-extensions ts,tsx --growl"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Giftbit/giftbit-lambda-metricslib.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/Giftbit/giftbit-lambda-metricslib/issues"
+  },
+  "homepage": "https://github.com/Giftbit/giftbit-lambda-metricslib#readme",
+  "dependencies": {
+    "datadog-metrics": "^0.4.0"
+  },
+  "devDependencies": {
+    "@types/aws-lambda": "0.0.9",
+    "@types/node": "^7.0.12",
+    "rimraf": "^2.6.1",
+    "ts-node": "^3.0.2",
+    "tslint": "^5.0.0",
+    "typescript": "^2.2.2"
+  },
+  "peerDependencies": {
+    "aws-sdk": "^2.38.0"
+  }
+}
