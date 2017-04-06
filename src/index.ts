@@ -22,12 +22,26 @@ export async function init(apiKeyS3Bucket: string, apiKeyS3Key: string, ctx: aws
     return initAdvanced({
         apiKeyS3Bucket: apiKeyS3Bucket,
         apiKeyS3Key: apiKeyS3Key,
-        defaultTags: [
-            `functionname:${ctx.functionName}`,
-            `resource:${ctx.functionName}`
-        ],
+        defaultTags: getDefaultTags(ctx),
         prefix: "gb.lambda."
     });
+}
+
+export function getDefaultTags(ctx: awslambda.Context): string[] {
+    const tags = [
+        `functionname:${ctx.functionName}`,
+        `resource:${ctx.functionName}`
+    ];
+
+    const accountMatcher = /arn:aws:lambda:([a-z0-9-]+):([0-9]+):.*/.exec(ctx.invokedFunctionArn);
+    if (accountMatcher) {
+        tags.push(
+            `aws_account:${accountMatcher[2]}`,
+            `region:${accountMatcher[1]}`
+        );
+    }
+
+    return tags;
 }
 
 /**

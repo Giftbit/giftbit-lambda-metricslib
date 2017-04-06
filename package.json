@@ -1,6 +1,6 @@
 {
   "name": "giftbit-lambda-metricslib",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Library for producing metrics in AWS Lambda.",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -27,7 +27,11 @@
   },
   "devDependencies": {
     "@types/aws-lambda": "0.0.9",
+    "@types/chai": "^3.4.35",
+    "@types/mocha": "^2.2.40",
     "@types/node": "^7.0.12",
+    "chai": "^3.5.0",
+    "mocha": "^3.2.0",
     "rimraf": "^2.6.1",
     "ts-node": "^3.0.2",
     "tslint": "^5.0.0",
