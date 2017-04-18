@@ -1,4 +1,3 @@
-/// <reference path="./datadog-metrics.d.ts"/>
 "use strict";
 var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
     return new (P || (P = Promise))(function (resolve, reject) {
@@ -28,15 +27,24 @@ function init(apiKeyS3Bucket, apiKeyS3Key, ctx) {
         return initAdvanced({
             apiKeyS3Bucket: apiKeyS3Bucket,
             apiKeyS3Key: apiKeyS3Key,
-            defaultTags: [
-                `functionname:${ctx.functionName}`,
-                `resource:${ctx.functionName}`
-            ],
+            defaultTags: getDefaultTags(ctx),
             prefix: "gb.lambda."
         });
     });
 }
 exports.init = init;
+function getDefaultTags(ctx) {
+    const tags = [
+        `functionname:${ctx.functionName}`,
+        `resource:${ctx.functionName}`
+    ];
+    const accountMatcher = /arn:aws:lambda:([a-z0-9-]+):([0-9]+):.*/.exec(ctx.invokedFunctionArn);
+    if (accountMatcher) {
+        tags.push(`aws_account:${accountMatcher[2]}`, `region:${accountMatcher[1]}`);
+    }
+    return tags;
+}
+exports.getDefaultTags = getDefaultTags;
 /**
  * Advanced initialization options offering full control.  Safe to call multiple
  * times but actual initialization only happens once.

@@ -1,4 +1,3 @@
-/// <reference path="../src/datadog-metrics.d.ts" />
 import * as awslambda from "aws-lambda";
 import * as metrics from "datadog-metrics";
 /**
@@ -6,6 +5,7 @@ import * as metrics from "datadog-metrics";
  * initialization only happens once.  This is the recommended method.
  */
 export declare function init(apiKeyS3Bucket: string, apiKeyS3Key: string, ctx: awslambda.Context): Promise<void>;
+export declare function getDefaultTags(ctx: awslambda.Context): string[];
 /**
  * Advanced initialization options offering full control.  Safe to call multiple
  * times but actual initialization only happens once.

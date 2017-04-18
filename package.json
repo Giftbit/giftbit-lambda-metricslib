@@ -1,6 +1,6 @@
 {
   "name": "giftbit-lambda-metricslib",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "Library for producing metrics in AWS Lambda.",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -28,6 +28,7 @@
   "devDependencies": {
     "@types/aws-lambda": "0.0.9",
     "@types/chai": "^3.4.35",
+    "@types/datadog-metrics": "^0.4.0",
     "@types/mocha": "^2.2.40",
     "@types/node": "^7.0.12",
     "chai": "^3.5.0",
