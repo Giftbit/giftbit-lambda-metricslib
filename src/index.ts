@@ -104,7 +104,7 @@ export function gauge(key: string, value: number, ...tags: string[]): void {
  * list of tags to associate with the metric. This is useful for counting things such
  * as incrementing a counter each time a page is requested.
  */
-export function increment(key: string, value: number, ...tags: string[]): void {
+export function increment(key: string, value: number = 1, ...tags: string[]): void {
     if (!initted) {
         afterInitThunks.push(() => metrics.increment.apply(metrics, arguments));
         return;

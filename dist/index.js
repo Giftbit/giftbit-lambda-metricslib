@@ -15,6 +15,8 @@ let afterInitThunks = [];
 /**
  * Initialize with standard options.  Safe to call multiple times but actual
  * initialization only happens once.  This is the recommended method.
+ *
+ * Metrics calls will be buffered until init is called.
  */
 function init(apiKeyS3Bucket, apiKeyS3Key, ctx) {
     return __awaiter(this, void 0, void 0, function* () {
@@ -33,6 +35,9 @@ function init(apiKeyS3Bucket, apiKeyS3Key, ctx) {
     });
 }
 exports.init = init;
+/**
+ * Get a list of tags for the given Lambda context.
+ */
 function getDefaultTags(ctx) {
     const tags = [
         `functionname:${ctx.functionName}`,
@@ -48,6 +53,8 @@ exports.getDefaultTags = getDefaultTags;
 /**
  * Advanced initialization options offering full control.  Safe to call multiple
  * times but actual initialization only happens once.
+ *
+ * Metrics calls will be buffered until init is called.
  */
 function initAdvanced(options) {
     return __awaiter(this, void 0, void 0, function* () {
@@ -78,7 +85,7 @@ function initAdvanced(options) {
 }
 exports.initAdvanced = initAdvanced;
 /**
- * Record the current value of a metric. They most recent value in a given flush
+ * Record the current value of a metric. The most recent value in a given flush
  * interval will be recorded. Optionally, specify a set of tags to associate with
  * the metric. This should be used for sum values such as total hard disk space,
  * process uptime, total number of active users, or number of rows in a database table.
@@ -96,7 +103,7 @@ exports.gauge = gauge;
  * list of tags to associate with the metric. This is useful for counting things such
  * as incrementing a counter each time a page is requested.
  */
-function increment(key, value, ...tags) {
+function increment(key, value = 1, ...tags) {
     if (!initted) {
         afterInitThunks.push(() => metrics.increment.apply(metrics, arguments));
         return;
