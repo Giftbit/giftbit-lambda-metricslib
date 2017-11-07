@@ -17,6 +17,10 @@ let afterInitThunks = [];
  * initialization only happens once.  This is the recommended method.
  *
  * Metrics calls will be buffered until init is called.
+ *
+ * @param apiKeyS3Bucket The S3 bucket holding the API key
+ * @param apiKeyS3Key The S3 item key holding the API key
+ * @param ctx The Lambda context object passed into the Lambda handler
  */
 function init(apiKeyS3Bucket, apiKeyS3Key, ctx) {
     return __awaiter(this, void 0, void 0, function* () {
@@ -35,6 +39,19 @@ function init(apiKeyS3Bucket, apiKeyS3Key, ctx) {
     });
 }
 exports.init = init;
+/**
+ * Create a Lambda handler that inits metrics and then calls the given Lambda handler.
+ * @param apiKeyS3Bucket The S3 bucket holding the API key
+ * @param apiKeyS3Key The S3 item key holding the API key
+ * @param handler The handler to delegate to after init
+ */
+function wrapLambdaHandler(apiKeyS3Bucket, apiKeyS3Key, handler) {
+    return (evt, ctx, callback) => {
+        init(apiKeyS3Bucket, apiKeyS3Key, ctx).catch(err => console.error("metrics init error", err));
+        handler(evt, ctx, callback);
+    };
+}
+exports.wrapLambdaHandler = wrapLambdaHandler;
 /**
  * Get a list of tags for the given Lambda context.
  */
@@ -92,10 +109,10 @@ exports.initAdvanced = initAdvanced;
  */
 function gauge(key, value, ...tags) {
     if (!initted) {
-        afterInitThunks.push(() => metrics.gauge.apply(metrics, arguments));
+        afterInitThunks.push(() => metrics.gauge(key, value, ...tags));
         return;
     }
-    metrics.gauge.apply(metrics, arguments);
+    metrics.gauge(key, value, ...tags);
 }
 exports.gauge = gauge;
 /**
@@ -105,10 +122,10 @@ exports.gauge = gauge;
  */
 function increment(key, value = 1, ...tags) {
     if (!initted) {
-        afterInitThunks.push(() => metrics.increment.apply(metrics, arguments));
+        afterInitThunks.push(() => metrics.increment(key, value, ...tags));
         return;
     }
-    metrics.increment.apply(metrics, arguments);
+    metrics.increment(key, value, ...tags);
 }
 exports.increment = increment;
 /**
@@ -118,10 +135,10 @@ exports.increment = increment;
  */
 function histogram(key, value, ...tags) {
     if (!initted) {
-        afterInitThunks.push(() => metrics.histogram.apply(metrics, arguments));
+        afterInitThunks.push(() => metrics.histogram(key, value, ...tags));
         return;
     }
-    metrics.histogram.apply(metrics, arguments);
+    metrics.histogram(key, value, ...tags);
 }
 exports.histogram = histogram;
 /**

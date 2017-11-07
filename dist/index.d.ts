@@ -5,8 +5,19 @@ import * as metrics from "datadog-metrics";
  * initialization only happens once.  This is the recommended method.
  *
  * Metrics calls will be buffered until init is called.
+ *
+ * @param apiKeyS3Bucket The S3 bucket holding the API key
+ * @param apiKeyS3Key The S3 item key holding the API key
+ * @param ctx The Lambda context object passed into the Lambda handler
  */
 export declare function init(apiKeyS3Bucket: string, apiKeyS3Key: string, ctx: awslambda.Context): Promise<void>;
+/**
+ * Create a Lambda handler that inits metrics and then calls the given Lambda handler.
+ * @param apiKeyS3Bucket The S3 bucket holding the API key
+ * @param apiKeyS3Key The S3 item key holding the API key
+ * @param handler The handler to delegate to after init
+ */
+export declare function wrapLambdaHandler<T>(apiKeyS3Bucket: string, apiKeyS3Key: string, handler: (evt: T, ctx: awslambda.Context, callback: awslambda.Callback) => void): (evt: T, ctx: awslambda.Context, callback: awslambda.Callback) => void;
 /**
  * Get a list of tags for the given Lambda context.
  */
