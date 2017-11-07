@@ -110,10 +110,10 @@ export async function initAdvanced(options: AsyncBufferedMetricsLoggerOptions): 
  */
 export function gauge(key: string, value: number, ...tags: string[]): void {
     if (!initted) {
-        afterInitThunks.push(() => metrics.gauge.apply(metrics, arguments));
+        afterInitThunks.push(() => metrics.gauge(key, value, ...tags));
         return;
     }
-    metrics.gauge.apply(metrics, arguments);
+    metrics.gauge(key, value, ...tags);
 }
 
 /**
@@ -123,10 +123,10 @@ export function gauge(key: string, value: number, ...tags: string[]): void {
  */
 export function increment(key: string, value: number = 1, ...tags: string[]): void {
     if (!initted) {
-        afterInitThunks.push(() => metrics.increment.apply(metrics, arguments));
+        afterInitThunks.push(() => metrics.increment(key, value, ...tags));
         return;
     }
-    metrics.increment.apply(metrics, arguments);
+    metrics.increment(key, value, ...tags);
 }
 
 /**
@@ -136,10 +136,10 @@ export function increment(key: string, value: number = 1, ...tags: string[]): vo
  */
 export function histogram(key: string, value: number, ...tags: string[]): void {
     if (!initted) {
-        afterInitThunks.push(() => metrics.histogram.apply(metrics, arguments));
+        afterInitThunks.push(() => metrics.histogram(key, value, ...tags));
         return;
     }
-    metrics.histogram.apply(metrics, arguments);
+    metrics.histogram(key, value, ...tags);
 }
 
 /**
