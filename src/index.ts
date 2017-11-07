@@ -10,6 +10,10 @@ let afterInitThunks: (() => void)[] = [];
  * initialization only happens once.  This is the recommended method.
  *
  * Metrics calls will be buffered until init is called.
+ *
+ * @param apiKeyS3Bucket The S3 bucket holding the API key
+ * @param apiKeyS3Key The S3 item key holding the API key
+ * @param ctx The Lambda context object passed into the Lambda handler
  */
 export async function init(apiKeyS3Bucket: string, apiKeyS3Key: string, ctx: awslambda.Context): Promise<void> {
     if (!apiKeyS3Bucket) {
@@ -25,6 +29,19 @@ export async function init(apiKeyS3Bucket: string, apiKeyS3Key: string, ctx: aws
         defaultTags: getDefaultTags(ctx),
         prefix: "gb.lambda."
     });
+}
+
+/**
+ * Create a Lambda handler that inits metrics and then calls the given Lambda handler.
+ * @param apiKeyS3Bucket The S3 bucket holding the API key
+ * @param apiKeyS3Key The S3 item key holding the API key
+ * @param handler The handler to delegate to after init
+ */
+export function wrapLambdaHandler<T>(apiKeyS3Bucket: string, apiKeyS3Key: string, handler: (evt: T, ctx: awslambda.Context, callback: awslambda.Callback) => void): (evt: T, ctx: awslambda.Context, callback: awslambda.Callback) => void {
+    return (evt: T, ctx: awslambda.Context, callback: awslambda.Callback): void => {
+        init(apiKeyS3Bucket, apiKeyS3Key, ctx).catch(err => console.error("metrics init error", err));
+        handler(evt, ctx, callback);
+    };
 }
 
 /**
