@@ -33,13 +33,27 @@ describe("index", () => {
     describe("gauge()", () => {
         it("passes along all its arguments",  async () => {
             const stub = sandbox.stub(datadogMetrics, "gauge")
-                .callsFake((key: string, value: number, ...tags: string[])  => {
+                .callsFake((key: string, value: number, tags: string[], timestamp: number)  => {
                     chai.assert.equal(key, "mykey");
                     chai.assert.equal(value, 11);
                     chai.assert.deepEqual(tags, ["a", "b", "c"]);
+                    chai.assert.equal(timestamp, 10101010);
                 });
 
-            metrics.gauge("mykey", 11, "a", "b", "c");
+            metrics.gauge("mykey", 11, ["a", "b", "c"], 10101010);
+            chai.assert.equal(stub.callCount, 1);
+        });
+
+        it("converts Date timestamps to numbers", () => {
+            const stub = sandbox.stub(datadogMetrics, "gauge")
+                .callsFake((key: string, value: number, tags: string[], timestamp: number)  => {
+                    chai.assert.equal(key, "mykey");
+                    chai.assert.equal(value, 11);
+                    chai.assert.deepEqual(tags, ["a", "b", "c"]);
+                    chai.assert.equal(timestamp, 10101010);
+                });
+
+            metrics.gauge("mykey", 11, ["a", "b", "c"], new Date(10101010));
             chai.assert.equal(stub.callCount, 1);
         });
     });
@@ -47,13 +61,27 @@ describe("index", () => {
     describe("increment()", () => {
         it("passes along all its arguments",  async () => {
             const stub = sandbox.stub(datadogMetrics, "increment")
-                .callsFake((key: string, value: number, ...tags: string[])  => {
+                .callsFake((key: string, value: number, tags: string[], timestamp: number)  => {
                     chai.assert.equal(key, "mykey");
                     chai.assert.equal(value, 11);
                     chai.assert.deepEqual(tags, ["a", "b", "c"]);
+                    chai.assert.equal(timestamp, 10101010);
                 });
 
-            metrics.increment("mykey", 11, "a", "b", "c");
+            metrics.increment("mykey", 11, ["a", "b", "c"], 10101010);
+            chai.assert.equal(stub.callCount, 1);
+        });
+
+        it("converts Date timestamps to numbers", () => {
+            const stub = sandbox.stub(datadogMetrics, "increment")
+                .callsFake((key: string, value: number, tags: string[], timestamp: number)  => {
+                    chai.assert.equal(key, "mykey");
+                    chai.assert.equal(value, 11);
+                    chai.assert.deepEqual(tags, ["a", "b", "c"]);
+                    chai.assert.equal(timestamp, 10101010);
+                });
+
+            metrics.increment("mykey", 11, ["a", "b", "c"], new Date(10101010));
             chai.assert.equal(stub.callCount, 1);
         });
     });
@@ -61,13 +89,27 @@ describe("index", () => {
     describe("histogram()", () => {
         it("passes along all its arguments",  async () => {
             const stub = sandbox.stub(datadogMetrics, "histogram")
-                .callsFake((key: string, value: number, ...tags: string[])  => {
+                .callsFake((key: string, value: number, tags: string[], timestamp: number)  => {
                     chai.assert.equal(key, "mykey");
                     chai.assert.equal(value, 11);
                     chai.assert.deepEqual(tags, ["a", "b", "c"]);
+                    chai.assert.equal(timestamp, 10101010);
                 });
 
-            metrics.histogram("mykey", 11, "a", "b", "c");
+            metrics.histogram("mykey", 11, ["a", "b", "c"], 10101010);
+            chai.assert.equal(stub.callCount, 1);
+        });
+
+        it("converts Date timestamps to numbers", () => {
+            const stub = sandbox.stub(datadogMetrics, "histogram")
+                .callsFake((key: string, value: number, tags: string[], timestamp: number)  => {
+                    chai.assert.equal(key, "mykey");
+                    chai.assert.equal(value, 11);
+                    chai.assert.deepEqual(tags, ["a", "b", "c"]);
+                    chai.assert.equal(timestamp, 10101010);
+                });
+
+            metrics.histogram("mykey", 11, ["a", "b", "c"], new Date(10101010));
             chai.assert.equal(stub.callCount, 1);
         });
     });

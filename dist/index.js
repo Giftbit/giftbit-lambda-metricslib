@@ -107,12 +107,12 @@ exports.initAdvanced = initAdvanced;
  * the metric. This should be used for sum values such as total hard disk space,
  * process uptime, total number of active users, or number of rows in a database table.
  */
-function gauge(key, value, ...tags) {
+function gauge(key, value, tags, timestamp) {
     if (!initted) {
-        afterInitThunks.push(() => metrics.gauge(key, value, ...tags));
+        afterInitThunks.push(() => metrics.gauge(key, value, tags, getTimestampMillis(timestamp)));
         return;
     }
-    metrics.gauge(key, value, ...tags);
+    metrics.gauge(key, value, tags, getTimestampMillis(timestamp));
 }
 exports.gauge = gauge;
 /**
@@ -120,12 +120,12 @@ exports.gauge = gauge;
  * list of tags to associate with the metric. This is useful for counting things such
  * as incrementing a counter each time a page is requested.
  */
-function increment(key, value = 1, ...tags) {
+function increment(key, value = 1, tags, timestamp) {
     if (!initted) {
-        afterInitThunks.push(() => metrics.increment(key, value, ...tags));
+        afterInitThunks.push(() => metrics.increment(key, value, tags, getTimestampMillis(timestamp)));
         return;
     }
-    metrics.increment(key, value, ...tags);
+    metrics.increment(key, value, tags, getTimestampMillis(timestamp));
 }
 exports.increment = increment;
 /**
@@ -133,12 +133,12 @@ exports.increment = increment;
  * of the recorded values, namely the minimum, maximum, average, count and the 75th, 85th,
  * 95th and 99th percentiles. Optionally, specify a list of tags to associate with the metric.
  */
-function histogram(key, value, ...tags) {
+function histogram(key, value, tags, timestamp) {
     if (!initted) {
-        afterInitThunks.push(() => metrics.histogram(key, value, ...tags));
+        afterInitThunks.push(() => metrics.histogram(key, value, tags, getTimestampMillis(timestamp)));
         return;
     }
-    metrics.histogram(key, value, ...tags);
+    metrics.histogram(key, value, tags, getTimestampMillis(timestamp));
 }
 exports.histogram = histogram;
 /**
@@ -156,3 +156,15 @@ function flush() {
     });
 }
 exports.flush = flush;
+function getTimestampMillis(timestamp) {
+    if (timestamp == null) {
+        return undefined;
+    }
+    if (timestamp instanceof Date) {
+        return timestamp.getTime();
+    }
+    if (typeof timestamp === "number") {
+        return timestamp;
+    }
+    throw new Error("timestamp must a number, a Date, or undefined");
+}

@@ -108,12 +108,12 @@ export async function initAdvanced(options: AsyncBufferedMetricsLoggerOptions): 
  * the metric. This should be used for sum values such as total hard disk space,
  * process uptime, total number of active users, or number of rows in a database table.
  */
-export function gauge(key: string, value: number, ...tags: string[]): void {
+export function gauge(key: string, value: number, tags?: string[], timestamp?: number | Date): void {
     if (!initted) {
-        afterInitThunks.push(() => metrics.gauge(key, value, ...tags));
+        afterInitThunks.push(() => metrics.gauge(key, value, tags, getTimestampMillis(timestamp)));
         return;
     }
-    metrics.gauge(key, value, ...tags);
+    metrics.gauge(key, value, tags, getTimestampMillis(timestamp));
 }
 
 /**
@@ -121,12 +121,12 @@ export function gauge(key: string, value: number, ...tags: string[]): void {
  * list of tags to associate with the metric. This is useful for counting things such
  * as incrementing a counter each time a page is requested.
  */
-export function increment(key: string, value: number = 1, ...tags: string[]): void {
+export function increment(key: string, value: number = 1, tags?: string[], timestamp?: number | Date): void {
     if (!initted) {
-        afterInitThunks.push(() => metrics.increment(key, value, ...tags));
+        afterInitThunks.push(() => metrics.increment(key, value, tags, getTimestampMillis(timestamp)));
         return;
     }
-    metrics.increment(key, value, ...tags);
+    metrics.increment(key, value, tags, getTimestampMillis(timestamp));
 }
 
 /**
@@ -134,12 +134,12 @@ export function increment(key: string, value: number = 1, ...tags: string[]): vo
  * of the recorded values, namely the minimum, maximum, average, count and the 75th, 85th,
  * 95th and 99th percentiles. Optionally, specify a list of tags to associate with the metric.
  */
-export function histogram(key: string, value: number, ...tags: string[]): void {
+export function histogram(key: string, value: number, tags?: string[], timestamp?: number | Date): void {
     if (!initted) {
-        afterInitThunks.push(() => metrics.histogram(key, value, ...tags));
+        afterInitThunks.push(() => metrics.histogram(key, value, tags, getTimestampMillis(timestamp)));
         return;
     }
-    metrics.histogram(key, value, ...tags);
+    metrics.histogram(key, value, tags, getTimestampMillis(timestamp));
 }
 
 /**
@@ -153,6 +153,19 @@ export async function flush(): Promise<void> {
         await new Promise(resolve => afterInitThunks.push(resolve));
     }
     return await new Promise<void>((resolve, reject) => metrics.flush(resolve, reject));
+}
+
+function getTimestampMillis(timestamp?: number | Date): number | undefined {
+    if (timestamp == null) {
+        return undefined;
+    }
+    if (timestamp instanceof Date) {
+        return timestamp.getTime();
+    }
+    if (typeof timestamp === "number") {
+        return timestamp;
+    }
+    throw new Error("timestamp must a number, a Date, or undefined");
 }
 
 export interface AsyncBufferedMetricsLoggerOptions extends metrics.BufferedMetricsLoggerOptions {

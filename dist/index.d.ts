@@ -35,19 +35,19 @@ export declare function initAdvanced(options: AsyncBufferedMetricsLoggerOptions)
  * the metric. This should be used for sum values such as total hard disk space,
  * process uptime, total number of active users, or number of rows in a database table.
  */
-export declare function gauge(key: string, value: number, ...tags: string[]): void;
+export declare function gauge(key: string, value: number, tags?: string[], timestamp?: number | Date): void;
 /**
  * Increment the counter by the given value (or 1 by default). Optionally, specify a
  * list of tags to associate with the metric. This is useful for counting things such
  * as incrementing a counter each time a page is requested.
  */
-export declare function increment(key: string, value?: number, ...tags: string[]): void;
+export declare function increment(key: string, value?: number, tags?: string[], timestamp?: number | Date): void;
 /**
  * Sample a histogram value. Histograms will produce metrics that describe the distribution
  * of the recorded values, namely the minimum, maximum, average, count and the 75th, 85th,
  * 95th and 99th percentiles. Optionally, specify a list of tags to associate with the metric.
  */
-export declare function histogram(key: string, value: number, ...tags: string[]): void;
+export declare function histogram(key: string, value: number, tags?: string[], timestamp?: number | Date): void;
 /**
  * Calling flush sends any buffered metrics to DataDog. Unless you set flushIntervalSeconds
  * to 0 it won't be necessary to call this function.
