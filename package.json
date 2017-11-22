@@ -23,13 +23,13 @@
   },
   "homepage": "https://github.com/Giftbit/giftbit-lambda-metricslib#readme",
   "dependencies": {
-    "@types/datadog-metrics": "^0.6.0",
     "aws-sdk": "^2.148.0",
     "datadog-metrics": "^0.6.1"
   },
   "devDependencies": {
     "@types/aws-lambda": "0.0.19",
     "@types/chai": "^4.0.4",
+    "@types/datadog-metrics": "^0.6.0",
     "@types/mocha": "^2.2.44",
     "@types/node": "^8.0.50",
     "@types/sinon": "^2.3.7",
