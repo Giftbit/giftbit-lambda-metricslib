@@ -1,6 +1,6 @@
 {
   "name": "giftbit-lambda-metricslib",
-  "version": "2.0.1",
+  "version": "2.0.2",
   "description": "Library for producing metrics in AWS Lambda.",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -24,7 +24,7 @@
   "homepage": "https://github.com/Giftbit/giftbit-lambda-metricslib#readme",
   "dependencies": {
     "aws-sdk": "^2.148.0",
-    "datadog-metrics": "^0.6.1"
+    "datadog-metrics": "^0.8.1"
   },
   "devDependencies": {
     "@types/aws-lambda": "0.0.19",
