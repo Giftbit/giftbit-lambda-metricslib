@@ -6,27 +6,70 @@ import * as metrics from "./index";
 
 describe("index", () => {
 
+    let sandbox: sinon.SinonSandbox;
+
     before(() => {
         process.env["DATADOG_API_KEY"] = "XXX";
+        sandbox = sinon.createSandbox();
     });
 
     after(() => {
         delete process.env["DATADOG_API_KEY"];
     });
 
-    let sandbox: sinon.SinonSandbox;
-
-    beforeEach(function () {
-        sandbox = sinon.sandbox.create();
-    });
-
     afterEach(() => {
         sandbox.restore();
     });
 
-    describe("initAdvanced()", () => {
-        it("can be called with an empty object",  async () => {
-            metrics.initAdvanced({});
+    describe("wrapLambdaHandler()", () => {
+        it("calls datadogMetrics.init() after the handler is called",  async () => {
+            const apiKey = "asdf";
+            const awsAccountId = "123456789012";
+            const awsRegion = "us-west-2";
+            const evtPayload = {
+                b: "bravo"
+            };
+            const functionName = "fakeyhandler";
+            const handlerPayload = {
+                a: "alpha"
+            };
+
+            const stub = sandbox.stub(datadogMetrics, "init").callsFake((options: datadogMetrics.BufferedMetricsLoggerOptions) => {
+                chai.assert.equal(options.apiKey, apiKey);
+                chai.assert.sameMembers(options.defaultTags, [`functionname:${functionName}`, `resource:${functionName}`, `aws_account:${awsAccountId}`, `region:${awsRegion}`]);
+            });
+
+            const lambdaContext = {
+                callbackWaitsForEmptyEventLoop: false,
+                functionName,
+                functionVersion: "1.0",
+                invokedFunctionArn: `arn:aws:lambda:${awsRegion}:${awsAccountId}:function:${functionName}`,
+                memoryLimitInMB: 128,
+                awsRequestId: "awsRequestId",
+                logGroupName: "logGroupName",
+                logStreamName: "logStreamName"
+            } as awslambda.Context;
+
+            let handlerCalled = false;
+            const wrappedHandler = metrics.wrapLambdaHandler({
+                handler: async (evt: any, ctx: any) => {
+                    chai.assert.deepEqual(evt, evtPayload);
+                    chai.assert.deepEqual(ctx, lambdaContext);
+                    handlerCalled = true;
+                    return handlerPayload;
+                },
+                secureConfig: Promise.resolve({apiKey})
+            });
+            chai.assert.isFunction(wrappedHandler);
+            chai.assert.isFalse(handlerCalled);
+
+            const callResponse = await wrappedHandler(evtPayload, lambdaContext);
+            chai.assert.isTrue(handlerCalled);
+            chai.assert.deepEqual(callResponse, handlerPayload);
+            chai.assert.equal(stub.callCount, 1);
+
+            await wrappedHandler(evtPayload, lambdaContext);
+            chai.assert.equal(stub.callCount, 1);
         });
     });
 
@@ -131,7 +174,7 @@ describe("index", () => {
                 succeed: () => {}
             };
 
-            const tags = metrics.getDefaultTags(ctx);
+            const tags = metrics.getLambdaContextTags(ctx);
             chai.assert.sameMembers(tags, [
                 "functionname:MyTestingFunction",
                 "resource:MyTestingFunction",
@@ -156,7 +199,7 @@ describe("index", () => {
                 succeed: () => {}
             };
 
-            const tags = metrics.getDefaultTags(ctx);
+            const tags = metrics.getLambdaContextTags(ctx);
             chai.assert.isArray(tags);
         });
     });
