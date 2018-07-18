@@ -1,53 +1,63 @@
-import * as aws from "aws-sdk";
 import * as awslambda from "aws-lambda";
 import * as metrics from "datadog-metrics";
+import {MetricsLibConfig} from "./MetricsLibConfig";
 
-let initted = false;
+let initialized = false;
 let afterInitThunks: (() => void)[] = [];
 
-/**
- * Initialize with standard options.  Safe to call multiple times but actual
- * initialization only happens once.  This is the recommended method.
- *
- * Metrics calls will be buffered until init is called.
- *
- * @param apiKeyS3Bucket The S3 bucket holding the API key
- * @param apiKeyS3Key The S3 item key holding the API key
- * @param ctx The Lambda context object passed into the Lambda handler
- */
-export async function init(apiKeyS3Bucket: string, apiKeyS3Key: string, ctx: awslambda.Context): Promise<void> {
-    if (!apiKeyS3Bucket) {
-        throw new Error("apiKeyS3Bucket not set");
-    }
-    if (!apiKeyS3Key) {
-        throw new Error("apiKeyS3Key not set");
-    }
+export interface WrapLambdaHandlerOptions {
+    /**
+     * The lambda handler to wrap.
+     */
+    handler: (evt: any, ctx: awslambda.Context) => Promise<any>;
 
-    return initAdvanced({
-        apiKeyS3Bucket: apiKeyS3Bucket,
-        apiKeyS3Key: apiKeyS3Key,
-        defaultTags: getDefaultTags(ctx),
-        prefix: "gb.lambda."
-    });
+    /**
+     * The secure config with the api key.
+     */
+    secureConfig: Promise<MetricsLibConfig> | MetricsLibConfig;
+
+    /**
+     * Optional options for the metrics logger.  `apiKey` will be overridden.
+     * `defaultTags` will be amended with tags from the Lambda context.
+     */
+    loggerOptions?: metrics.BufferedMetricsLoggerOptions;
 }
 
-/**
- * Create a Lambda handler that inits metrics and then calls the given Lambda handler.
- * @param apiKeyS3Bucket The S3 bucket holding the API key
- * @param apiKeyS3Key The S3 item key holding the API key
- * @param handler The handler to delegate to after init
- */
-export function wrapLambdaHandler<T>(apiKeyS3Bucket: string, apiKeyS3Key: string, handler: (evt: T, ctx: awslambda.Context, callback: awslambda.Callback) => void): (evt: T, ctx: awslambda.Context, callback: awslambda.Callback) => void {
-    return (evt: T, ctx: awslambda.Context, callback: awslambda.Callback): void => {
-        init(apiKeyS3Bucket, apiKeyS3Key, ctx).catch(err => console.error("metrics init error", err));
-        handler(evt, ctx, callback);
+export function wrapLambdaHandler(options: WrapLambdaHandlerOptions): (evt: any, ctx: awslambda.Context) => Promise<any> {
+    return async (evt: any, ctx: awslambda.Context): Promise<any> => {
+        init(options, ctx).catch(err => console.error("sentry init error", err));
+        return options.handler(evt, ctx);
     };
+}
+
+async function init(options: WrapLambdaHandlerOptions, ctx: awslambda.Context): Promise<void> {
+    if (initialized) {
+        return;
+    }
+
+    const apiKeyObject = await options.secureConfig;
+    if (!apiKeyObject.apiKey) {
+        throw new Error("Stored DataDog API key object missing `apiKey` member.");
+    }
+
+    const loggerOptions = options.loggerOptions || {};
+    const loggerOptionsTags = loggerOptions.defaultTags || [];
+
+    metrics.init({
+        ...loggerOptions,
+        apiKey: apiKeyObject.apiKey,
+        defaultTags: [...loggerOptionsTags, ...getLambdaContextTags(ctx)],
+        prefix: loggerOptions.prefix || "gb.lambda."
+    });
+    initialized = true;
+    afterInitThunks.forEach(thunk => thunk());
+    afterInitThunks = [];
 }
 
 /**
  * Get a list of tags for the given Lambda context.
  */
-export function getDefaultTags(ctx: awslambda.Context): string[] {
+export function getLambdaContextTags(ctx: awslambda.Context): string[] {
     const tags = [
         `functionname:${ctx.functionName}`,
         `resource:${ctx.functionName}`
@@ -65,51 +75,13 @@ export function getDefaultTags(ctx: awslambda.Context): string[] {
 }
 
 /**
- * Advanced initialization options offering full control.  Safe to call multiple
- * times but actual initialization only happens once.
- *
- * Metrics calls will be buffered until init is called.
- */
-export async function initAdvanced(options: AsyncBufferedMetricsLoggerOptions): Promise<void> {
-    if (initted) {
-        return;
-    }
-
-    if (options.apiKeyS3Bucket && options.apiKeyS3Key) {
-        const s3 = new aws.S3({
-            apiVersion: "2006-03-01",
-            credentials: new aws.EnvironmentCredentials("AWS"),
-            signatureVersion: "v4"
-        });
-        const s3Object = await s3.getObject({
-            Bucket: options.apiKeyS3Bucket,
-            Key: options.apiKeyS3Key
-        }).promise();
-        const apiKeyObject = JSON.parse(s3Object.Body.toString());
-        if (!apiKeyObject.apiKey) {
-            throw new Error("Stored DataDog API key object missing `apiKey` member.");
-        }
-
-        options = {
-            ...options,
-            apiKey: apiKeyObject.apiKey
-        };
-    }
-
-    metrics.init(options);
-    initted = true;
-    afterInitThunks.forEach(thunk => thunk());
-    afterInitThunks = [];
-}
-
-/**
  * Record the current value of a metric. The most recent value in a given flush
  * interval will be recorded. Optionally, specify a set of tags to associate with
  * the metric. This should be used for sum values such as total hard disk space,
  * process uptime, total number of active users, or number of rows in a database table.
  */
 export function gauge(key: string, value: number, tags?: string[], timestamp?: number | Date): void {
-    if (!initted) {
+    if (!initialized) {
         afterInitThunks.push(() => metrics.gauge(key, value, tags, getTimestampMillis(timestamp)));
         return;
     }
@@ -122,7 +94,7 @@ export function gauge(key: string, value: number, tags?: string[], timestamp?: n
  * as incrementing a counter each time a page is requested.
  */
 export function increment(key: string, value: number = 1, tags?: string[], timestamp?: number | Date): void {
-    if (!initted) {
+    if (!initialized) {
         afterInitThunks.push(() => metrics.increment(key, value, tags, getTimestampMillis(timestamp)));
         return;
     }
@@ -135,7 +107,7 @@ export function increment(key: string, value: number = 1, tags?: string[], times
  * 95th and 99th percentiles. Optionally, specify a list of tags to associate with the metric.
  */
 export function histogram(key: string, value: number, tags?: string[], timestamp?: number | Date): void {
-    if (!initted) {
+    if (!initialized) {
         afterInitThunks.push(() => metrics.histogram(key, value, tags, getTimestampMillis(timestamp)));
         return;
     }
@@ -149,7 +121,7 @@ export function histogram(key: string, value: number, tags?: string[], timestamp
  * metrics have been sent before you quit the application process, for example.
  */
 export async function flush(): Promise<void> {
-    if (!initted) {
+    if (!initialized) {
         await new Promise(resolve => afterInitThunks.push(resolve));
     }
     return await new Promise<void>((resolve, reject) => metrics.flush(resolve, reject));
@@ -166,9 +138,4 @@ function getTimestampMillis(timestamp?: number | Date): number | undefined {
         return timestamp;
     }
     throw new Error("timestamp must a number, a Date, or undefined");
-}
-
-export interface AsyncBufferedMetricsLoggerOptions extends metrics.BufferedMetricsLoggerOptions {
-    apiKeyS3Bucket?: string;
-    apiKeyS3Key?: string;
 }

@@ -8,54 +8,37 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-const aws = require("aws-sdk");
 const metrics = require("datadog-metrics");
-let initted = false;
+let initialized = false;
 let afterInitThunks = [];
-/**
- * Initialize with standard options.  Safe to call multiple times but actual
- * initialization only happens once.  This is the recommended method.
- *
- * Metrics calls will be buffered until init is called.
- *
- * @param apiKeyS3Bucket The S3 bucket holding the API key
- * @param apiKeyS3Key The S3 item key holding the API key
- * @param ctx The Lambda context object passed into the Lambda handler
- */
-function init(apiKeyS3Bucket, apiKeyS3Key, ctx) {
-    return __awaiter(this, void 0, void 0, function* () {
-        if (!apiKeyS3Bucket) {
-            throw new Error("apiKeyS3Bucket not set");
-        }
-        if (!apiKeyS3Key) {
-            throw new Error("apiKeyS3Key not set");
-        }
-        return initAdvanced({
-            apiKeyS3Bucket: apiKeyS3Bucket,
-            apiKeyS3Key: apiKeyS3Key,
-            defaultTags: getDefaultTags(ctx),
-            prefix: "gb.lambda."
-        });
+function wrapLambdaHandler(options) {
+    return (evt, ctx) => __awaiter(this, void 0, void 0, function* () {
+        init(options, ctx).catch(err => console.error("sentry init error", err));
+        return options.handler(evt, ctx);
     });
 }
-exports.init = init;
-/**
- * Create a Lambda handler that inits metrics and then calls the given Lambda handler.
- * @param apiKeyS3Bucket The S3 bucket holding the API key
- * @param apiKeyS3Key The S3 item key holding the API key
- * @param handler The handler to delegate to after init
- */
-function wrapLambdaHandler(apiKeyS3Bucket, apiKeyS3Key, handler) {
-    return (evt, ctx, callback) => {
-        init(apiKeyS3Bucket, apiKeyS3Key, ctx).catch(err => console.error("metrics init error", err));
-        handler(evt, ctx, callback);
-    };
-}
 exports.wrapLambdaHandler = wrapLambdaHandler;
+function init(options, ctx) {
+    return __awaiter(this, void 0, void 0, function* () {
+        if (initialized) {
+            return;
+        }
+        const apiKeyObject = yield options.secureConfig;
+        if (!apiKeyObject.apiKey) {
+            throw new Error("Stored DataDog API key object missing `apiKey` member.");
+        }
+        const loggerOptions = options.loggerOptions || {};
+        const loggerOptionsTags = loggerOptions.defaultTags || [];
+        metrics.init(Object.assign({}, loggerOptions, { apiKey: apiKeyObject.apiKey, defaultTags: [...loggerOptionsTags, ...getLambdaContextTags(ctx)], prefix: loggerOptions.prefix || "gb.lambda." }));
+        initialized = true;
+        afterInitThunks.forEach(thunk => thunk());
+        afterInitThunks = [];
+    });
+}
 /**
  * Get a list of tags for the given Lambda context.
  */
-function getDefaultTags(ctx) {
+function getLambdaContextTags(ctx) {
     const tags = [
         `functionname:${ctx.functionName}`,
         `resource:${ctx.functionName}`
@@ -66,41 +49,7 @@ function getDefaultTags(ctx) {
     }
     return tags;
 }
-exports.getDefaultTags = getDefaultTags;
-/**
- * Advanced initialization options offering full control.  Safe to call multiple
- * times but actual initialization only happens once.
- *
- * Metrics calls will be buffered until init is called.
- */
-function initAdvanced(options) {
-    return __awaiter(this, void 0, void 0, function* () {
-        if (initted) {
-            return;
-        }
-        if (options.apiKeyS3Bucket && options.apiKeyS3Key) {
-            const s3 = new aws.S3({
-                apiVersion: "2006-03-01",
-                credentials: new aws.EnvironmentCredentials("AWS"),
-                signatureVersion: "v4"
-            });
-            const s3Object = yield s3.getObject({
-                Bucket: options.apiKeyS3Bucket,
-                Key: options.apiKeyS3Key
-            }).promise();
-            const apiKeyObject = JSON.parse(s3Object.Body.toString());
-            if (!apiKeyObject.apiKey) {
-                throw new Error("Stored DataDog API key object missing `apiKey` member.");
-            }
-            options = Object.assign({}, options, { apiKey: apiKeyObject.apiKey });
-        }
-        metrics.init(options);
-        initted = true;
-        afterInitThunks.forEach(thunk => thunk());
-        afterInitThunks = [];
-    });
-}
-exports.initAdvanced = initAdvanced;
+exports.getLambdaContextTags = getLambdaContextTags;
 /**
  * Record the current value of a metric. The most recent value in a given flush
  * interval will be recorded. Optionally, specify a set of tags to associate with
@@ -108,7 +57,7 @@ exports.initAdvanced = initAdvanced;
  * process uptime, total number of active users, or number of rows in a database table.
  */
 function gauge(key, value, tags, timestamp) {
-    if (!initted) {
+    if (!initialized) {
         afterInitThunks.push(() => metrics.gauge(key, value, tags, getTimestampMillis(timestamp)));
         return;
     }
@@ -121,7 +70,7 @@ exports.gauge = gauge;
  * as incrementing a counter each time a page is requested.
  */
 function increment(key, value = 1, tags, timestamp) {
-    if (!initted) {
+    if (!initialized) {
         afterInitThunks.push(() => metrics.increment(key, value, tags, getTimestampMillis(timestamp)));
         return;
     }
@@ -134,7 +83,7 @@ exports.increment = increment;
  * 95th and 99th percentiles. Optionally, specify a list of tags to associate with the metric.
  */
 function histogram(key, value, tags, timestamp) {
-    if (!initted) {
+    if (!initialized) {
         afterInitThunks.push(() => metrics.histogram(key, value, tags, getTimestampMillis(timestamp)));
         return;
     }
@@ -149,7 +98,7 @@ exports.histogram = histogram;
  */
 function flush() {
     return __awaiter(this, void 0, void 0, function* () {
-        if (!initted) {
+        if (!initialized) {
             yield new Promise(resolve => afterInitThunks.push(resolve));
         }
         return yield new Promise((resolve, reject) => metrics.flush(resolve, reject));

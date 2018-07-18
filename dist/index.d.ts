@@ -1,34 +1,26 @@
 import * as awslambda from "aws-lambda";
 import * as metrics from "datadog-metrics";
-/**
- * Initialize with standard options.  Safe to call multiple times but actual
- * initialization only happens once.  This is the recommended method.
- *
- * Metrics calls will be buffered until init is called.
- *
- * @param apiKeyS3Bucket The S3 bucket holding the API key
- * @param apiKeyS3Key The S3 item key holding the API key
- * @param ctx The Lambda context object passed into the Lambda handler
- */
-export declare function init(apiKeyS3Bucket: string, apiKeyS3Key: string, ctx: awslambda.Context): Promise<void>;
-/**
- * Create a Lambda handler that inits metrics and then calls the given Lambda handler.
- * @param apiKeyS3Bucket The S3 bucket holding the API key
- * @param apiKeyS3Key The S3 item key holding the API key
- * @param handler The handler to delegate to after init
- */
-export declare function wrapLambdaHandler<T>(apiKeyS3Bucket: string, apiKeyS3Key: string, handler: (evt: T, ctx: awslambda.Context, callback: awslambda.Callback) => void): (evt: T, ctx: awslambda.Context, callback: awslambda.Callback) => void;
+import { MetricsLibConfig } from "./MetricsLibConfig";
+export interface WrapLambdaHandlerOptions {
+    /**
+     * The lambda handler to wrap.
+     */
+    handler: (evt: any, ctx: awslambda.Context) => Promise<any>;
+    /**
+     * The secure config with the api key.
+     */
+    secureConfig: Promise<MetricsLibConfig> | MetricsLibConfig;
+    /**
+     * Optional options for the metrics logger.  `apiKey` will be overridden.
+     * `defaultTags` will be amended with tags from the Lambda context.
+     */
+    loggerOptions?: metrics.BufferedMetricsLoggerOptions;
+}
+export declare function wrapLambdaHandler(options: WrapLambdaHandlerOptions): (evt: any, ctx: awslambda.Context) => Promise<any>;
 /**
  * Get a list of tags for the given Lambda context.
  */
-export declare function getDefaultTags(ctx: awslambda.Context): string[];
-/**
- * Advanced initialization options offering full control.  Safe to call multiple
- * times but actual initialization only happens once.
- *
- * Metrics calls will be buffered until init is called.
- */
-export declare function initAdvanced(options: AsyncBufferedMetricsLoggerOptions): Promise<void>;
+export declare function getLambdaContextTags(ctx: awslambda.Context): string[];
 /**
  * Record the current value of a metric. The most recent value in a given flush
  * interval will be recorded. Optionally, specify a set of tags to associate with
@@ -55,7 +47,3 @@ export declare function histogram(key: string, value: number, tags?: string[], t
  * metrics have been sent before you quit the application process, for example.
  */
 export declare function flush(): Promise<void>;
-export interface AsyncBufferedMetricsLoggerOptions extends metrics.BufferedMetricsLoggerOptions {
-    apiKeyS3Bucket?: string;
-    apiKeyS3Key?: string;
-}
