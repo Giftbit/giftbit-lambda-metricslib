@@ -11,6 +11,9 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const metrics = require("datadog-metrics");
 let initialized = false;
 let afterInitThunks = [];
+/**
+ * Get a Lambda handler that automatically initializes metrics.
+ */
 function wrapLambdaHandler(options) {
     return (evt, ctx) => __awaiter(this, void 0, void 0, function* () {
         init(options, ctx).catch(err => console.error("sentry init error", err));
@@ -18,6 +21,12 @@ function wrapLambdaHandler(options) {
     });
 }
 exports.wrapLambdaHandler = wrapLambdaHandler;
+/**
+ * Initialize manually with standard options.  Safe to call multiple times but actual
+ * initialization only happens once.
+ *
+ * Metrics calls will be buffered until init is called.
+ */
 function init(options, ctx) {
     return __awaiter(this, void 0, void 0, function* () {
         if (initialized) {
@@ -35,6 +44,7 @@ function init(options, ctx) {
         afterInitThunks = [];
     });
 }
+exports.init = init;
 /**
  * Get a list of tags for the given Lambda context.
  */

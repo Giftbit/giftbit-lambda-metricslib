@@ -3,13 +3,47 @@ Library for producing metrics in AWS Lambda.
 
 ## Requirements
 
-- `node4.3` lambda execution environment
+- `node8.10` lambda execution environment
 
 ## Installation
 
 `npm install git+ssh://git@github.com/Giftbit/giftbit-lambda-metricslib.git`
 
 ## Usage
+
+### With cassava
+
+This example uses cassava and records a count of the number of items fetched.
+
+```typescript
+import * as cassava from "cassava";
+import * as giftbitRoutes from "giftbit-cassava-routes";
+import * as metrics from "giftbit-lambda-metricslib";
+
+const router = new cassava.Router();
+
+router.route("/getSomeThings")
+    .method("GET")
+    .handler(async evt => {
+        let items: any[];
+
+        // ... populate items from the DB.
+
+        metrics.increment("fetch.count", items.length);
+
+        return {
+            body: {
+                items: items
+            }
+        };
+    });
+
+export const handler = metrics.wrapLambdaHandler({
+    secureConfig: giftbitRoutes.secureConfig.fetchFromS3ByEnvVar("SECURE_CONFIG_BUCKET", "SECURE_CONFIG_KEY_DATADOG"),
+    handler: router.getLambdaHandler()
+});
+```
+
 
 ### With giftbit-lambda-comslib
 
@@ -27,11 +61,11 @@ function handler(evt: comsLib.aws.KinesisInputEvent, ctx: awslambda.Context, cal
         process.env["SECURE_CONFIG_KEY_DATADOG"],   // the S3 object key for the DataDog API key
         ctx
     );
-    
+
     if (evt.Records.length) {
         metrics.gauge("kinesis.latency", new Date().getTime() - evt.Records[evt.Records.length - 1].kinesis.approximateArrivalTimestamp * 1000);
     }
-    
+
     // ... process mesages
 
     metrics.flush().then(
@@ -39,40 +73,4 @@ function handler(evt: comsLib.aws.KinesisInputEvent, ctx: awslambda.Context, cal
         err => callback(err)
     );
 }
-```
-
-### With cassava
-
-This example uses cassava and records a count of the number of items fetched.
-
-```typescript
-import * as cassava from "cassava";
-import * as metrics from "giftbit-lambda-metricslib";
-
-const router = new cassava.Router();
-
-router.route("/getSomeThings")
-    .method("GET")
-    .handler(async evt => {
-        let items: any[];
-        
-        // ... populate items from the DB.
-
-        metrics.increment("fetch.count", items.length);
-
-        return {
-            body: {
-                items: items
-            }
-        };
-    });
-
-// This is how cassava recommends exporting the handler without metrics.
-// export const handler = router.getLambdaHandler();
-
-export const handler = metrics.wrapLambdaHandler(
-    process.env["SECURE_CONFIG_BUCKET"],        // the S3 bucket with the DataDog API key
-    process.env["SECURE_CONFIG_KEY_DATADOG"],   // the S3 object key for the DataDog API key
-    router.getLambdaHandler()                   // the cassava handler
-);
 ```

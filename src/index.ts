@@ -23,6 +23,9 @@ export interface WrapLambdaHandlerOptions {
     loggerOptions?: metrics.BufferedMetricsLoggerOptions;
 }
 
+/**
+ * Get a Lambda handler that automatically initializes metrics.
+ */
 export function wrapLambdaHandler(options: WrapLambdaHandlerOptions): (evt: any, ctx: awslambda.Context) => Promise<any> {
     return async (evt: any, ctx: awslambda.Context): Promise<any> => {
         init(options, ctx).catch(err => console.error("sentry init error", err));
@@ -30,7 +33,13 @@ export function wrapLambdaHandler(options: WrapLambdaHandlerOptions): (evt: any,
     };
 }
 
-async function init(options: WrapLambdaHandlerOptions, ctx: awslambda.Context): Promise<void> {
+/**
+ * Initialize manually with standard options.  Safe to call multiple times but actual
+ * initialization only happens once.
+ *
+ * Metrics calls will be buffered until init is called.
+ */
+export async function init(options: WrapLambdaHandlerOptions, ctx: awslambda.Context): Promise<void> {
     if (initialized) {
         return;
     }

@@ -16,7 +16,17 @@ export interface WrapLambdaHandlerOptions {
      */
     loggerOptions?: metrics.BufferedMetricsLoggerOptions;
 }
+/**
+ * Get a Lambda handler that automatically initializes metrics.
+ */
 export declare function wrapLambdaHandler(options: WrapLambdaHandlerOptions): (evt: any, ctx: awslambda.Context) => Promise<any>;
+/**
+ * Initialize manually with standard options.  Safe to call multiple times but actual
+ * initialization only happens once.
+ *
+ * Metrics calls will be buffered until init is called.
+ */
+export declare function init(options: WrapLambdaHandlerOptions, ctx: awslambda.Context): Promise<void>;
 /**
  * Get a list of tags for the given Lambda context.
  */
