@@ -13,7 +13,7 @@ Library for producing metrics in AWS Lambda.
 
 ### With cassava
 
-This example uses cassava and records a count of the number of items fetched.
+This example uses cassava and records a count of the number of items fetched.  Metricslib is initialized automatically in the wrapped handler.
 
 ```typescript
 import * as cassava from "cassava";
@@ -47,7 +47,7 @@ export const handler = metrics.wrapLambdaHandler({
 
 ### With giftbit-lambda-comslib
 
-This example uses giftbit-lambda-comslib and records the time between when a Kinesis event is produced and when it's consumed.
+This example uses giftbit-lambda-comslib and records the time between when a Kinesis event is produced and when it's consumed.  Metricslib is initialized manually.
 
 ```typescript
 import * as awslambda from "aws-lambda";
@@ -55,10 +55,13 @@ import * as comsLib from "giftbit-lambda-comslib";
 import * as metrics from "giftbit-lambda-metricslib";
 
 
-function handler(evt: comsLib.aws.KinesisInputEvent, ctx: awslambda.Context, callback: awslambda.Callback): void {
+async function handler(evt: comsLib.aws.KinesisInputEvent, ctx: awslambda.Context): Promise<any> {
     metrics.init(
-        process.env["SECURE_CONFIG_BUCKET"],        // the S3 bucket with the DataDog API key
-        process.env["SECURE_CONFIG_KEY_DATADOG"],   // the S3 object key for the DataDog API key
+        {
+            secureConfig: {
+                apiKey: "xxx"
+            }
+        },
         ctx
     );
 
@@ -68,9 +71,7 @@ function handler(evt: comsLib.aws.KinesisInputEvent, ctx: awslambda.Context, cal
 
     // ... process mesages
 
-    metrics.flush().then(
-        res => callback(null, "success"),
-        err => callback(err)
-    );
+    await metrics.flush();
+    return "success";
 }
 ```
