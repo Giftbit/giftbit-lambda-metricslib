@@ -6,18 +6,15 @@ import * as metrics from "./index";
 
 describe("index", () => {
 
+    let sandbox: sinon.SinonSandbox;
+
     before(() => {
         process.env["DATADOG_API_KEY"] = "XXX";
+        sandbox = sinon.createSandbox();
     });
 
     after(() => {
         delete process.env["DATADOG_API_KEY"];
-    });
-
-    let sandbox: sinon.SinonSandbox;
-
-    beforeEach(function () {
-        sandbox = sinon.sandbox.create();
     });
 
     afterEach(() => {
