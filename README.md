@@ -1,4 +1,11 @@
-# giftbit-lamda-coms-lib
+# giftbit-lamda-coms-lib [deprecated]
+
+*Deprecated in favour of using Cloudwatch logs to send metrics to Datadog: https://docs.datadoghq.com/integrations/amazon_lambda/#using-cloudwatch-logs.* 
+
+*For basic plug-and-play response logging, use the `MetricsRoute` in [giftbit-cassava-routes](https://github.com/Giftbit/giftbit-cassava-routes). To log custom metrics, use a log statement in the [specified format](https://docs.datadoghq.com/integrations/amazon_lambda/#using-cloudwatch-logs).*
+
+------------------------------
+
 Library for producing metrics in AWS Lambda.
 
 ## Requirements
